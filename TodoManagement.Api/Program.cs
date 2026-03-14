@@ -6,7 +6,11 @@ using MongoDB.Driver;
 using TodoManagement.Api.Options;
 using TodoManagement.Api.Services;
 
+LoadDotEnvFile();
+
 var builder = WebApplication.CreateBuilder(args);
+
+ApplyLegacyEnvironmentOverrides(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.Configure<MongoDbOptions>(
@@ -60,5 +64,71 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+void ApplyLegacyEnvironmentOverrides(ConfigurationManager configuration)
+{
+	var overrides = new Dictionary<string, string?>();
+	var mongoDbUri = Environment.GetEnvironmentVariable("MONGODB_URI");
+	var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+
+	if (!string.IsNullOrWhiteSpace(mongoDbUri))
+	{
+		overrides[$"{MongoDbOptions.SectionName}:ConnectionString"] = mongoDbUri;
+	}
+
+	if (!string.IsNullOrWhiteSpace(jwtSecret))
+	{
+		overrides[$"{JwtOptions.SectionName}:SecretKey"] = jwtSecret;
+	}
+
+	if (overrides.Count > 0)
+	{
+		configuration.AddInMemoryCollection(overrides);
+	}
+}
+
+void LoadDotEnvFile()
+{
+	var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+	while (currentDirectory is not null)
+	{
+		var dotEnvPath = Path.Combine(currentDirectory.FullName, ".env");
+
+		if (File.Exists(dotEnvPath))
+		{
+			foreach (var rawLine in File.ReadAllLines(dotEnvPath))
+			{
+				var line = rawLine.Trim();
+
+				if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#'))
+				{
+					continue;
+				}
+
+				var separatorIndex = line.IndexOf('=');
+
+				if (separatorIndex <= 0)
+				{
+					continue;
+				}
+
+				var key = line[..separatorIndex].Trim();
+				var value = line[(separatorIndex + 1)..].Trim().Trim('"');
+
+				if (string.IsNullOrWhiteSpace(key) || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(key)))
+				{
+					continue;
+				}
+
+				Environment.SetEnvironmentVariable(key, value);
+			}
+
+			return;
+		}
+
+		currentDirectory = currentDirectory.Parent;
+	}
+}
 
 public partial class Program;

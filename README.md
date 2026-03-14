@@ -2,15 +2,13 @@
 
 一個使用 ASP.NET Core、MongoDB 與 JWT 實作的 Todo API 練習專案。
 
-這個 repo 的目標是用 .NET 重新完成一份與既有 Node.js 版本功能對齊的後端作品，重點放在三件事：
+作為個人練習專案，重點實踐以下三項後端工程核心技能：
 
 - MongoDB CRUD API 實作
 - JWT 登入與 Bearer Token 驗證
 - 以整合測試驗證主要 API 行為
 
-目前這個版本不額外擴充 Swagger、Docker、角色權限或前端畫面，重點是把核心後端能力做完整。
-
-## 技術棧
+## 技術
 
 | 類別 | 技術 |
 | --- | --- |
@@ -118,6 +116,20 @@ Authorization: Bearer <token>
 
 如需調整，可修改 `TodoManagement.Api/appsettings.json`。
 
+如果你習慣使用 `.env`，也可以在 repo 根目錄建立 `.env`，目前專案會自動讀取以下兩個名稱：
+
+```dotenv
+MONGODB_URI=mongodb+srv://<your-connection-string>
+JWT_SECRET=dev_secret_change_in_prod
+```
+
+程式會自動把它們對應到：
+
+- `MongoDb:ConnectionString`
+- `Jwt:SecretKey`
+
+`.env` 已加入 `.gitignore`，不要把真實帳密提交到 repo。
+
 ### 2. 啟動 API
 
 ```bash
@@ -145,14 +157,3 @@ dotnet test TodoManagement.sln
 - Todo CRUD 主流程
 - 登入成功與失敗情境
 - 未授權、無效 Token、有效 Token 的授權情境
-
-## 學習重點
-
-- 用 ASP.NET Core 重做一份既有 Node.js API 的功能規格
-- 練習 MongoDB 在 .NET 中的設定綁定與 CRUD 實作
-- 練習 JWT 簽發與 Bearer 驗證管線設定
-- 練習用整合測試驗證 API 行為，而不是只測單一方法
-
-## 對照版本
-
-這個題目另外有一份 Node.js 版本，這份 .NET 專案的定位是功能對齊版，用來展示相同題目在不同後端技術棧下的實作方式。
