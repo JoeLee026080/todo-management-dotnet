@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TodoManagement.Api.Models;
 using TodoManagement.Api.Services;
@@ -5,6 +6,7 @@ using TodoManagement.Api.Services;
 namespace TodoManagement.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/items")]
 public class ItemsController : ControllerBase
 {

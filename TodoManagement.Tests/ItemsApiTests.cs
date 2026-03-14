@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using TodoManagement.Api.Models;
@@ -9,6 +10,7 @@ public class ItemsApiTests : IClassFixture<CustomWebApplicationFactory>, IAsyncL
 {
 	private readonly HttpClient _client;
 	private readonly CustomWebApplicationFactory _factory;
+	private string _authToken = string.Empty;
 
 	public ItemsApiTests(CustomWebApplicationFactory factory)
 	{
@@ -19,11 +21,28 @@ public class ItemsApiTests : IClassFixture<CustomWebApplicationFactory>, IAsyncL
 	public async Task InitializeAsync()
 	{
 		await _factory.ResetDatabaseAsync();
+		_authToken = await LoginAsync();
+		_client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _authToken);
 	}
 
 	public Task DisposeAsync()
 	{
+		_client.DefaultRequestHeaders.Authorization = null;
 		return Task.CompletedTask;
+	}
+
+	private async Task<string> LoginAsync()
+	{
+		var response = await _client.PostAsJsonAsync("/api/auth/login", new
+		{
+			username = "admin",
+			password = "admin123"
+		});
+
+		response.EnsureSuccessStatusCode();
+
+		using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+		return json.RootElement.GetProperty("token").GetString() ?? string.Empty;
 	}
 
 	[Fact]
