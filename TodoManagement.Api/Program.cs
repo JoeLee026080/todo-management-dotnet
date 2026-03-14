@@ -8,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.Configure<MongoDbOptions>(
 	builder.Configuration.GetSection(MongoDbOptions.SectionName));
+builder.Services.Configure<JwtOptions>(
+	builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
 {
 	var options = serviceProvider.GetRequiredService<IOptions<MongoDbOptions>>().Value;
@@ -20,6 +22,7 @@ builder.Services.AddSingleton<IMongoDatabase>(serviceProvider =>
 	return client.GetDatabase(options.DatabaseName);
 });
 builder.Services.AddSingleton<ItemRepository>();
+builder.Services.AddSingleton<JwtTokenService>();
 
 var app = builder.Build();
 
