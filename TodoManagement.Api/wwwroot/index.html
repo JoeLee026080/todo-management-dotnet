@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todo Management .NET Demo</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .1);
+      padding: 32px;
+      max-width: 480px;
+      margin: 60px auto;
+    }
+
+    h1 { margin: 0 0 24px; font-size: 1.5rem; color: #333; }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: .85rem; color: #666; margin-bottom: 6px; }
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d0d0d0;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .field input:focus { border-color: #4f8ef7; }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .9rem;
+      transition: opacity .15s;
+    }
+    button:hover { opacity: .85; }
+
+    .btn-primary { background: #4f8ef7; color: #fff; }
+    .btn-success { background: #34a853; color: #fff; }
+    .btn-warning { background: #fbbc04; color: #333; }
+    .btn-danger { background: #ea4335; color: #fff; }
+    .btn-ghost { background: #e8eaed; color: #333; }
+    .btn-block { width: 100%; padding: 11px; font-size: 1rem; margin-top: 4px; }
+
+    .error-msg {
+      background: #fdecea;
+      color: #c62828;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: .9rem;
+    }
+
+    .topbar {
+      max-width: 480px;
+      margin: 0 auto 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .topbar .user-info { font-size: .9rem; color: #555; }
+    .topbar .user-info strong { color: #4f8ef7; }
+
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .add-row input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1px solid #d0d0d0;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+    }
+    .add-row input:focus { border-color: #4f8ef7; }
+
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    li:last-child { border-bottom: none; }
+    .item-name { flex: 1; font-size: 1rem; color: #333; }
+    .edit-input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #4f8ef7;
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+    }
+    .empty-hint { color: #aaa; font-size: .9rem; text-align: center; padding: 20px 0; }
+
+    .token-box {
+      margin-top: 20px;
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .token-box summary {
+      cursor: pointer;
+      font-size: .8rem;
+      color: #888;
+      user-select: none;
+    }
+    .token-value {
+      margin-top: 8px;
+      font-size: .72rem;
+      word-break: break-all;
+      color: #555;
+      font-family: Consolas, monospace;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div v-if="!token" class="card">
+      <h1>.NET Todo Management 登入</h1>
+
+      <div v-if="loginError" class="error-msg">{{ loginError }}</div>
+
+      <div class="field">
+        <label>帳號</label>
+        <input v-model="loginForm.username" placeholder="admin" @keyup.enter="login" />
+      </div>
+
+      <div class="field">
+        <label>密碼</label>
+        <input type="password" v-model="loginForm.password" placeholder="••••••••" @keyup.enter="login" />
+      </div>
+
+      <button class="btn-primary btn-block" :disabled="loginLoading" @click="login">
+        {{ loginLoading ? '登入中…' : '登入' }}
+      </button>
+
+      <div v-if="lastToken" class="token-box">
+        <details>
+          <summary>JWT Token（點擊展開）</summary>
+          <div class="token-value">{{ lastToken }}</div>
+        </details>
+      </div>
+    </div>
+
+    <template v-else>
+      <div class="topbar">
+        <span class="user-info">已登入為 <strong>{{ currentUser }}</strong></span>
+        <button class="btn-ghost" @click="logout">登出</button>
+      </div>
+
+      <div class="card" style="margin-top: 16px;">
+        <h1>項目管理</h1>
+
+        <div v-if="itemError" class="error-msg">{{ itemError }}</div>
+
+        <div class="add-row">
+          <input v-model="newItem" placeholder="輸入新項目名稱…" @keyup.enter="addItem" />
+          <button class="btn-primary" @click="addItem">新增</button>
+        </div>
+
+        <ul>
+          <li v-for="item in items" :key="item.id">
+            <template v-if="editingId === item.id">
+              <input class="edit-input" v-model="editedName" @keyup.enter="updateItem(item.id)" @keyup.esc="cancelEdit" />
+              <button class="btn-success" @click="updateItem(item.id)">儲存</button>
+              <button class="btn-ghost" @click="cancelEdit">取消</button>
+            </template>
+            <template v-else>
+              <span class="item-name">{{ item.name }}</span>
+              <button class="btn-warning" @click="startEdit(item)">編輯</button>
+              <button class="btn-danger" @click="deleteItem(item.id)">刪除</button>
+            </template>
+          </li>
+        </ul>
+
+        <p v-if="items.length === 0" class="empty-hint">尚無項目，請新增一筆吧！</p>
+
+        <div class="token-box">
+          <details>
+            <summary>目前的 JWT Token（學習用展示）</summary>
+            <div class="token-value">{{ token }}</div>
+          </details>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+    const API = '/api';
+
+    createApp({
+      setup() {
+        const token = ref(localStorage.getItem('jwt_token') || '');
+        const lastToken = ref('');
+        const loginForm = ref({ username: '', password: '' });
+        const loginError = ref('');
+        const loginLoading = ref(false);
+
+        const currentUser = computed(() => {
+          try {
+            const payload = JSON.parse(atob(token.value.split('.')[1]));
+            return payload.username ?? '未知';
+          } catch {
+            return '未知';
+          }
+        });
+
+        const authAxios = () => axios.create({
+          headers: { Authorization: `Bearer ${token.value}` }
+        });
+
+        const login = async () => {
+          loginError.value = '';
+
+          if (!loginForm.value.username || !loginForm.value.password) {
+            loginError.value = '請輸入帳號與密碼';
+            return;
+          }
+
+          loginLoading.value = true;
+
+          try {
+            const response = await axios.post(`${API}/auth/login`, loginForm.value);
+            token.value = response.data.token;
+            lastToken.value = response.data.token;
+            localStorage.setItem('jwt_token', token.value);
+            loginForm.value = { username: '', password: '' };
+            await fetchItems();
+          } catch (error) {
+            const status = error?.response?.status;
+
+            if (status === 401) {
+              loginError.value = '帳號或密碼錯誤';
+            } else if (status === 400) {
+              loginError.value = '請提供帳號與密碼';
+            } else {
+              loginError.value = '登入失敗，請稍後再試';
+            }
+          } finally {
+            loginLoading.value = false;
+          }
+        };
+
+        const items = ref([]);
+        const newItem = ref('');
+        const itemError = ref('');
+        const editingId = ref(null);
+        const editedName = ref('');
+
+        const logout = () => {
+          token.value = '';
+          lastToken.value = '';
+          localStorage.removeItem('jwt_token');
+          items.value = [];
+          itemError.value = '';
+          editingId.value = null;
+          editedName.value = '';
+        };
+
+        const handleAuthError = (error) => {
+          if (error?.response?.status === 401 || error?.response?.status === 403) {
+            itemError.value = 'Token 已過期，請重新登入';
+            logout();
+          } else {
+            itemError.value = error?.response?.data?.error || '操作失敗';
+          }
+        };
+
+        const fetchItems = async () => {
+          itemError.value = '';
+
+          try {
+            const response = await authAxios().get(`${API}/items`);
+            items.value = response.data;
+          } catch (error) {
+            handleAuthError(error);
+          }
+        };
+
+        const addItem = async () => {
+          if (!newItem.value.trim()) {
+            return;
+          }
+
+          try {
+            await authAxios().post(`${API}/items`, { name: newItem.value.trim() });
+            newItem.value = '';
+            await fetchItems();
+          } catch (error) {
+            handleAuthError(error);
+          }
+        };
+
+        const startEdit = (item) => {
+          editingId.value = item.id;
+          editedName.value = item.name;
+        };
+
+        const cancelEdit = () => {
+          editingId.value = null;
+          editedName.value = '';
+        };
+
+        const updateItem = async (id) => {
+          if (!editedName.value.trim()) {
+            return;
+          }
+
+          try {
+            await authAxios().put(`${API}/items/${id}`, { name: editedName.value.trim() });
+            cancelEdit();
+            await fetchItems();
+          } catch (error) {
+            handleAuthError(error);
+          }
+        };
+
+        const deleteItem = async (id) => {
+          try {
+            await authAxios().delete(`${API}/items/${id}`);
+            await fetchItems();
+          } catch (error) {
+            handleAuthError(error);
+          }
+        };
+
+        onMounted(() => {
+          if (token.value) {
+            fetchItems();
+          }
+        });
+
+        return {
+          token,
+          lastToken,
+          loginForm,
+          loginError,
+          loginLoading,
+          currentUser,
+          login,
+          logout,
+          items,
+          newItem,
+          itemError,
+          addItem,
+          editingId,
+          editedName,
+          startEdit,
+          cancelEdit,
+          updateItem,
+          deleteItem
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

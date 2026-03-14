@@ -51,6 +51,9 @@ if (app.Environment.IsDevelopment())
 	app.UseDeveloperExceptionPage();
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
