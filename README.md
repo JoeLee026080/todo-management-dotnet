@@ -1,12 +1,18 @@
 # Todo Management .NET API
 
+![CI](https://github.com/JoeLee026080/todo-management-dotnet/actions/workflows/test.yml/badge.svg)
+
 一個使用 ASP.NET Core、MongoDB 與 JWT 實作的 Todo API 練習專案。
 
 作為個人練習專案，重點實踐以下三項後端工程核心技能：
 
-- MongoDB CRUD API 實作
-- JWT 登入與 Bearer Token 驗證
-- 以整合測試驗證主要 API 行為
+- **測試** — xUnit + Microsoft.AspNetCore.Mvc.Testing，搭配 Mongo2Go 進行 API 整合測試，覆蓋 CRUD 與 JWT 認證邏輯
+- **JWT 登入與 Bearer Token 驗證** — Bearer Token 機制，保護受限 API 路由
+- **GitHub Actions CI** — 每次 push / PR 自動觸發測試，確保主線品質
+
+## 專案截圖
+
+<img width="644" height="667" alt="image" src="https://github.com/user-attachments/assets/ec5ca60c-72f9-4906-8d00-bb03dc371fcd" />
 
 ## 技術
 
