@@ -17,10 +17,13 @@ builder.Services.Configure<MongoDbOptions>(
 	builder.Configuration.GetSection(MongoDbOptions.SectionName));
 builder.Services.Configure<JwtOptions>(
 	builder.Configuration.GetSection(JwtOptions.SectionName));
-var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-	.AddJwtBearer(options =>
+	.AddJwtBearer();
+
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+	.Configure<IOptions<JwtOptions>>((options, jwtOptionsAccessor) =>
 	{
+		var jwtOptions = jwtOptionsAccessor.Value;
 		options.TokenValidationParameters = new TokenValidationParameters
 		{
 			ValidateIssuer = true,
@@ -33,6 +36,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 			ClockSkew = TimeSpan.Zero
 		};
 	});
+
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
 {

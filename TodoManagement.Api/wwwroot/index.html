@@ -223,7 +223,7 @@
         const currentUser = computed(() => {
           try {
             const payload = JSON.parse(atob(token.value.split('.')[1]));
-            return payload.username ?? '未知';
+            return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ?? '未知';
           } catch {
             return '未知';
           }
